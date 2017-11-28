@@ -12,7 +12,7 @@ using namespace std;
 
 float calcula_perimetro(float coordenadas[])
 {
-	float perimetro, resta1,resta2;
+	float perimetro=0, resta1,resta2;
 	resta1=coordenadas[0]-coordenadas[2];
 	resta2=coordenadas[1]-coordenadas[3];
 	perimetro= sqrt((pow(resta1,2))+(pow(resta2,2)));
@@ -102,11 +102,11 @@ int main(int argc, char* argv[])
 {
 	int         status, rank_actual, tamano_de_procesadores,pos,div,cont,otro,resta,aux,sum=0,numeros[2];
     MPI_Status  rec_stat;  
-    int         fuente, destino;   
+    int         fuente, destino, numcero[2];   
     MPI_Init(&argc, &argv);           
     MPI_Comm_size(MPI_COMM_WORLD, &tamano_de_procesadores);   
     MPI_Comm_rank(MPI_COMM_WORLD, &rank_actual);  
-	float perimetro=0,sumaperimetro=0;
+	float perimetro=0,sumaperimetro=0,pericero=0;
 
 	if(rank_actual==0)
 	{
@@ -114,38 +114,36 @@ int main(int argc, char* argv[])
 		fentrada.seekg(0, ios::end); 
    		pos = fentrada.tellg();
 
-		div=pos/(tamano_de_procesadores-1);
-		otro=div*(tamano_de_procesadores-1);
+		div=pos/tamano_de_procesadores;
+		otro=div*tamano_de_procesadores;
 		resta=pos-otro;
 		aux=div+resta;
+		numcero[0]=0;
+		sum=sum+aux;
+		numcero[1]=sum;
 		for(int i=1;i<tamano_de_procesadores;i++)
 		{
-			if(i==1)
-			{
-				numeros[0]=0;
-				sum=sum+aux;
-				numeros[1]=sum;
-			}
-			else
-			{
+
 				numeros[0]=sum+1;
 				sum=sum+div;
 				numeros[1]=sum;
-			}
+	
 			status = MPI_Send(numeros, 2, MPI_INT, i, 0, MPI_COMM_WORLD);
 		}
+		pericero=leer_triangulo(argv[1],argv[2],numcero);
 		for(int j=1;j<tamano_de_procesadores;j++)
 		{
 			status = MPI_Recv(&perimetro, 1, MPI_FLOAT, j, MPI_ANY_TAG, MPI_COMM_WORLD, &rec_stat);
 			sumaperimetro=perimetro+sumaperimetro;
 		}
+		sumaperimetro=pericero+sumaperimetro;
 		cout<<"LA SUMA DE PERIMETRO ES: "<<sumaperimetro<<endl;
 	}
 	else
 	{
 		status = MPI_Recv(numeros, 2, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &rec_stat);		
 		perimetro=leer_triangulo(argv[1],argv[2],numeros);
-		cout<<"PERIMETRO DE "<<rank_actual<<" ES: "<<perimetro<<endl;
+		//cout<<"PERIMETRO DE "<<rank_actual<<" ES: "<<perimetro<<endl;
 		status = MPI_Send(&perimetro, 1, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
 	}
 	 MPI_Finalize();
